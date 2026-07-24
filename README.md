@@ -11,6 +11,20 @@
 - `設定` から候補の追加、画像・色の設定、抽選モードの変更、JSONの書き出し/読み込み
 - `集計` から指名された回数の確認とリセット
 
+## スクリーンショット
+
+### ルーレット画面
+
+![ルーレット画面](docs/screenshots/roulette.jpg)
+
+### 候補管理
+
+![候補管理](docs/screenshots/settings.jpg)
+
+### 集計
+
+![集計](docs/screenshots/stats.jpg)
+
 ## 主な機能
 
 - 候補名、画像、色の登録
