@@ -900,15 +900,18 @@
     </section>
   </div>
 
-  <audio id="startAudio" src="se/決定ボタンを押す39.mp3" preload="auto"></audio>
-  <audio id="spinAudio" src="se/電子ルーレット回転中_loop.mp3" preload="auto" loop></audio>
-  <audio id="slowAudio" src="se/電子ルーレットが徐々に止まる.mp3" preload="auto"></audio>
-  <audio id="stopAudio" src="se/電子ルーレット停止ボタンを押す.mp3" preload="auto"></audio>
+  <audio id="startAudio" src="se/start.mp3" preload="auto"></audio>
+  <audio id="spinAudio" src="se/spin-loop.mp3" preload="auto" loop></audio>
+  <audio id="slowAudio" src="se/slow-down.mp3" preload="auto"></audio>
+  <audio id="stopAudio" src="se/result.mp3" preload="auto"></audio>
 
   <script>
-    const candidatesKey = "mathRouletteCandidates";
-    const resultKey = "mathRouletteLastResult";
-    const modeKey = "mathRouletteSelectionMode";
+    const candidatesKey = "classroomRandomPickerCandidates";
+    const resultKey = "classroomRandomPickerLastResult";
+    const modeKey = "classroomRandomPickerSelectionMode";
+    const legacyCandidatesKey = "mathRouletteCandidates";
+    const legacyResultKey = "mathRouletteLastResult";
+    const legacyModeKey = "mathRouletteSelectionMode";
     const colors = [
       ["#f94144", "#ffffff"],
       ["#277da1", "#ffffff"],
@@ -1046,12 +1049,12 @@
     }
 
     function loadSelectionMode() {
-      return localStorage.getItem(modeKey) === "fair" ? "fair" : "random";
+      return (localStorage.getItem(modeKey) || localStorage.getItem(legacyModeKey)) === "fair" ? "fair" : "random";
     }
 
     function loadCandidates() {
       try {
-        const parsed = JSON.parse(localStorage.getItem(candidatesKey) || "[]");
+        const parsed = JSON.parse(localStorage.getItem(candidatesKey) || localStorage.getItem(legacyCandidatesKey) || "[]");
         return Array.isArray(parsed)
           ? parsed.map((candidate, index) => normalizeCandidate(candidate, index)).filter((candidate) => candidate.name)
           : [];
@@ -1061,7 +1064,7 @@
     }
 
     function loadLastResult() {
-      const stored = localStorage.getItem(resultKey);
+      const stored = localStorage.getItem(resultKey) || localStorage.getItem(legacyResultKey);
       if (!stored) return null;
 
       try {
@@ -1491,7 +1494,7 @@
 
     function exportSettings() {
       const payload = {
-        app: "math-roulette",
+        app: "classroom-random-picker",
         version: 1,
         exportedAt: new Date().toISOString(),
         candidates: state.candidates.map((candidate) => exportCandidate(candidate))
@@ -1502,7 +1505,7 @@
       const link = document.createElement("a");
       const date = new Date().toISOString().slice(0, 10).replace(/-/g, "");
       link.href = url;
-      link.download = `指名ルーレット設定_${date}.json`;
+      link.download = `classroom-random-picker-settings-${date}.json`;
       document.body.append(link);
       link.click();
       link.remove();
