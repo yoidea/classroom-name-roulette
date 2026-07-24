@@ -1,0 +1,1717 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>指名ルーレット</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #17202a;
+      --muted: #5d6978;
+      --line: #d9e0e8;
+      --panel: rgba(255, 255, 255, 0.92);
+      --panel-strong: #ffffff;
+      --green: #16845b;
+      --green-dark: #0f6445;
+      --blue: #2467d6;
+      --orange: #c76322;
+      --red: #cf3d48;
+      --shadow: 0 18px 50px rgba(30, 39, 56, 0.16);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Hiragino Sans", "Yu Gothic", "Meiryo", system-ui, sans-serif;
+      color: var(--ink);
+      background: #fff3b6;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: -60vmax;
+      z-index: -1;
+      background:
+        repeating-conic-gradient(
+          from -8deg at 50% 50%,
+          #ffdf5d 0deg 8deg,
+          #ff7a90 8deg 16deg,
+          #63d2b4 16deg 24deg,
+          #5da9ff 24deg 32deg,
+          #ffffff 32deg 40deg
+        );
+      animation: backgroundSpin 18s linear infinite;
+      transform-origin: center;
+    }
+
+    @keyframes backgroundSpin {
+      to { transform: rotate(360deg); }
+    }
+
+    .app {
+      width: min(1080px, calc(100vw - 40px));
+      min-height: 100vh;
+      margin: 0 auto;
+      padding: 28px 0;
+      display: grid;
+      grid-template-rows: 1fr;
+    }
+
+    main {
+      display: grid;
+      align-items: center;
+    }
+
+    .stage {
+      min-height: calc(100vh - 56px);
+      display: grid;
+      grid-template-rows: 1fr auto;
+      gap: 18px;
+    }
+
+    .roulette-board {
+      position: relative;
+      min-height: min(76vh, 720px);
+      border: 6px solid rgba(23, 32, 42, 0.18);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      isolation: isolate;
+    }
+
+    .roulette-board::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(90deg, rgba(255, 255, 255, 0.5) 1px, transparent 1px),
+        linear-gradient(rgba(255, 255, 255, 0.5) 1px, transparent 1px);
+      background-size: 42px 42px;
+      mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.24), transparent 70%);
+      z-index: -1;
+    }
+
+    .display {
+      width: 100%;
+      min-height: 100%;
+      padding: clamp(24px, 4vw, 52px);
+      display: grid;
+      place-items: center;
+      text-align: center;
+      color: #17202a;
+      background: #ffffff;
+      transition: background-color 90ms linear, color 90ms linear, transform 120ms ease;
+    }
+
+    .result-stack {
+      width: 100%;
+      display: grid;
+      justify-items: center;
+      gap: clamp(18px, 3vw, 34px);
+    }
+
+    .photo-display {
+      width: min(34vh, 280px);
+      aspect-ratio: 1;
+      display: none;
+      border: 8px solid rgba(255, 255, 255, 0.72);
+      border-radius: 50%;
+      object-fit: cover;
+      box-shadow: 0 18px 42px rgba(23, 32, 42, 0.28);
+      background: rgba(255, 255, 255, 0.28);
+    }
+
+    .photo-display.visible {
+      display: block;
+    }
+
+    .display.spinning {
+      animation: pulse 0.52s linear infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.018); }
+    }
+
+    .name-display {
+      max-width: 100%;
+      font-size: clamp(58px, 11vw, 164px);
+      line-height: 1.02;
+      font-weight: 900;
+      letter-spacing: 0;
+      overflow-wrap: anywhere;
+      text-wrap: balance;
+      text-shadow:
+        0 4px 0 rgba(255, 255, 255, 0.68),
+        0 12px 26px rgba(23, 32, 42, 0.22);
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: minmax(260px, 520px);
+      justify-content: center;
+    }
+
+    button {
+      min-height: 56px;
+      border: 0;
+      border-radius: 8px;
+      padding: 0 18px;
+      font: inherit;
+      font-size: 18px;
+      font-weight: 900;
+      color: #fff;
+      cursor: pointer;
+      box-shadow: 0 12px 24px rgba(23, 32, 42, 0.16);
+      transition: transform 120ms ease, opacity 120ms ease, filter 120ms ease;
+    }
+
+    button:hover:not(:disabled) {
+      transform: translateY(-1px);
+      filter: brightness(1.04);
+    }
+
+    button:active:not(:disabled) {
+      transform: translateY(1px);
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.45;
+      box-shadow: none;
+    }
+
+    .start-btn {
+      background: linear-gradient(135deg, var(--green), var(--green-dark));
+    }
+
+    .stop-btn {
+      background: linear-gradient(135deg, var(--orange), var(--red));
+    }
+
+    .toggle-btn {
+      min-height: 76px;
+      font-size: clamp(26px, 3.4vw, 42px);
+    }
+
+    .floating-tools {
+      position: fixed;
+      right: 18px;
+      bottom: 14px;
+      z-index: 10;
+      display: flex;
+      gap: 10px;
+    }
+
+    .float-btn {
+      min-width: 76px;
+      min-height: 38px;
+      padding: 0 14px;
+      display: inline-grid;
+      place-items: center;
+      border-radius: 8px;
+      background: rgba(23, 32, 42, 0.78);
+      box-shadow: 0 8px 18px rgba(23, 32, 42, 0.18);
+      font-size: 15px;
+      line-height: 1;
+      opacity: 0.84;
+    }
+
+    .float-btn:hover,
+    .float-btn:focus-visible {
+      opacity: 1;
+      background: rgba(23, 32, 42, 0.94);
+    }
+
+    .stats-btn {
+      background: rgba(142, 68, 173, 0.86);
+    }
+
+    .panel {
+      border: 1px solid rgba(23, 32, 42, 0.1);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    .form-panel {
+      padding: 16px;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+    }
+
+    .optional-row {
+      display: grid;
+      gap: 10px;
+      margin: 12px 0 0 18px;
+      padding: 12px 0 2px 14px;
+      border-left: 4px solid #cbd5e1;
+    }
+
+    .compact-option {
+      min-width: 0;
+      display: grid;
+      grid-template-columns: 84px minmax(0, 1fr) auto;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .option-label {
+      color: #526273;
+      font-size: 13px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .color-input {
+      width: 100%;
+      min-height: 36px;
+      padding: 5px;
+      cursor: pointer;
+    }
+
+    .auto-color-btn {
+      min-height: 36px;
+      padding: 0 12px;
+      background: #526273;
+      box-shadow: none;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    .photo-input {
+      min-height: 36px;
+      padding: 6px 8px;
+      font-size: 13px;
+      font-weight: 700;
+      border-width: 1px;
+    }
+
+    .photo-preview {
+      width: 38px;
+      aspect-ratio: 1;
+      display: none;
+      border: 2px solid var(--line);
+      border-radius: 50%;
+      object-fit: cover;
+      background: #fff;
+    }
+
+    .photo-preview.visible {
+      display: block;
+    }
+
+    label {
+      display: block;
+      margin: 0 0 8px;
+      color: #344153;
+      font-size: 14px;
+      font-weight: 900;
+    }
+
+    input {
+      width: 100%;
+      min-height: 48px;
+      border: 2px solid var(--line);
+      border-radius: 8px;
+      padding: 0 14px;
+      font: inherit;
+      font-size: 18px;
+      font-weight: 800;
+      background: #fff;
+      color: var(--ink);
+      outline: none;
+    }
+
+    input:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 4px rgba(36, 103, 214, 0.14);
+    }
+
+    .add-btn {
+      min-height: 48px;
+      min-width: 78px;
+      background: var(--blue);
+      box-shadow: none;
+      font-size: 16px;
+    }
+
+    .list-panel {
+      min-height: 0;
+      padding: 16px;
+      overflow: visible;
+    }
+
+    .mode-panel {
+      padding: 0 16px;
+    }
+
+    .mode-row {
+      display: grid;
+      gap: 8px;
+    }
+
+    .mode-options {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .mode-option {
+      min-height: 54px;
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 10px;
+      align-items: center;
+      border: 2px solid var(--line);
+      border-radius: 8px;
+      padding: 0 14px;
+      background: #fff;
+      font-size: 15px;
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    .mode-option.selected,
+    .mode-option:has(input:checked) {
+      border-color: var(--blue);
+      background: rgba(36, 103, 214, 0.1);
+      box-shadow: 0 0 0 3px rgba(36, 103, 214, 0.12);
+    }
+
+    .mode-option input {
+      width: 20px;
+      min-height: 20px;
+      margin: 0;
+      accent-color: var(--blue);
+    }
+
+    .panel-title {
+      margin: 0 0 12px;
+      color: #344153;
+      font-size: 15px;
+      font-weight: 900;
+    }
+
+    .form-panel > label,
+    .mode-row > label,
+    .panel-title {
+      margin: 0 0 12px;
+      color: #344153;
+      font-size: 15px;
+      font-weight: 900;
+    }
+
+    .candidate-list {
+      display: grid;
+      grid-template-columns: 1fr;
+      align-content: start;
+      gap: 8px;
+      min-height: 0;
+      overflow: visible;
+      padding: 0 4px 10px 0;
+    }
+
+    .candidate {
+      min-height: 54px;
+      display: grid;
+      grid-template-columns: auto 1fr auto auto auto;
+      gap: 8px;
+      align-items: center;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 8px 10px 8px 12px;
+      background: var(--panel-strong);
+      font-size: 17px;
+      font-weight: 900;
+    }
+
+    .candidate.absent {
+      opacity: 0.58;
+      background: #f3f5f7;
+    }
+
+    .candidate-photo {
+      width: 36px;
+      aspect-ratio: 1;
+      border-radius: 50%;
+      object-fit: cover;
+      background: #edf1f5;
+    }
+
+    .candidate-photo.empty {
+      position: relative;
+      display: block;
+      overflow: hidden;
+    }
+
+    .candidate-photo.empty::before {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 8px;
+      width: 12px;
+      aspect-ratio: 1;
+      border-radius: 50%;
+      background: #9aa7b6;
+      transform: translateX(-50%);
+    }
+
+    .candidate-photo.empty::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      bottom: 5px;
+      width: 24px;
+      height: 13px;
+      border-radius: 999px 999px 0 0;
+      background: #9aa7b6;
+      transform: translateX(-50%);
+    }
+
+    .candidate-name {
+      overflow-wrap: anywhere;
+    }
+
+    .candidate.active {
+      border-color: #0e8b65;
+      box-shadow: inset 5px 0 0 #0e8b65;
+    }
+
+    .absent-btn {
+      min-width: 62px;
+      min-height: 34px;
+      padding: 0 10px;
+      border-radius: 7px;
+      background: #0e8b65;
+      box-shadow: none;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    .absent-btn.is-absent {
+      background: #8f3a45;
+    }
+
+    .candidate-color {
+      width: 38px;
+      min-height: 34px;
+      padding: 4px;
+      border-width: 1px;
+      border-radius: 7px;
+      cursor: pointer;
+    }
+
+    .remove-btn {
+      width: 34px;
+      min-width: 34px;
+      min-height: 34px;
+      padding: 0;
+      border-radius: 7px;
+      background: #edf1f5;
+      color: #526273;
+      box-shadow: none;
+      font-size: 20px;
+      line-height: 1;
+    }
+
+    .last-result {
+      min-height: 52px;
+      display: flex;
+      align-items: center;
+      font-size: 28px;
+      font-weight: 900;
+      line-height: 1.15;
+      overflow-wrap: anywhere;
+    }
+
+    .last-result[hidden] {
+      display: none;
+    }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      display: none;
+      place-items: center;
+      padding: 20px;
+      overflow: hidden;
+      background: rgba(17, 27, 39, 0.48);
+    }
+
+    .modal.open {
+      display: grid;
+    }
+
+    .modal-panel {
+      width: min(720px, 100%);
+      max-height: min(760px, calc(100vh - 40px));
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr) auto;
+      gap: 14px;
+      padding: 18px;
+      overflow: hidden;
+      overscroll-behavior: contain;
+    }
+
+    .modal-body {
+      min-height: 0;
+      display: grid;
+      gap: 14px;
+      overflow-y: auto;
+      padding-right: 4px;
+      overscroll-behavior: contain;
+    }
+
+    .modal-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .modal-head h2 {
+      margin: 0;
+      font-size: 24px;
+      line-height: 1.2;
+      letter-spacing: 0;
+    }
+
+    .close-btn {
+      width: 42px;
+      min-width: 42px;
+      min-height: 42px;
+      padding: 0;
+      border-radius: 8px;
+      background: #edf1f5;
+      color: #263342;
+      box-shadow: none;
+      font-size: 26px;
+      line-height: 1;
+    }
+
+    .modal-actions {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+
+    .modal-actions button {
+      min-height: 42px;
+      background: #526273;
+      box-shadow: none;
+      font-size: 14px;
+    }
+
+    .modal-actions .danger-btn {
+      background: #8f3a45;
+    }
+
+    .stats-panel {
+      width: min(920px, 100%);
+      max-height: min(780px, calc(100vh - 40px));
+      padding: 22px;
+      overflow-y: auto;
+      background:
+        radial-gradient(circle at 18% 12%, rgba(255, 255, 255, 0.92), transparent 24%),
+        linear-gradient(135deg, rgba(255, 223, 93, 0.94), rgba(255, 122, 144, 0.94) 42%, rgba(93, 169, 255, 0.94));
+    }
+
+    .stats-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+
+    .reset-stats-btn {
+      min-height: 42px;
+      padding: 0 14px;
+      background: #8f3a45;
+      box-shadow: 0 8px 18px rgba(23, 32, 42, 0.16);
+      font-size: 14px;
+      white-space: nowrap;
+    }
+
+    .stats-actions {
+      margin-top: 16px;
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    .stats-head h2 {
+      margin: 0;
+      font-size: clamp(28px, 4vw, 48px);
+      line-height: 1;
+      letter-spacing: 0;
+      color: #17202a;
+      text-shadow: 0 3px 0 rgba(255, 255, 255, 0.55);
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+      gap: 14px;
+    }
+
+    .stat-card {
+      min-height: 132px;
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 12px;
+      align-items: center;
+      border: 3px solid rgba(255, 255, 255, 0.78);
+      border-radius: 8px;
+      padding: 14px;
+      color: #fff;
+      box-shadow: 0 14px 28px rgba(23, 32, 42, 0.18);
+    }
+
+    .stat-photo,
+    .stat-photo-empty {
+      width: 58px;
+      aspect-ratio: 1;
+      border-radius: 50%;
+      border: 4px solid rgba(255, 255, 255, 0.7);
+      object-fit: cover;
+      background: rgba(255, 255, 255, 0.22);
+    }
+
+    .stat-photo-empty {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .stat-photo-empty::before {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 12px;
+      width: 18px;
+      aspect-ratio: 1;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.78);
+      transform: translateX(-50%);
+    }
+
+    .stat-photo-empty::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      bottom: 7px;
+      width: 38px;
+      height: 20px;
+      border-radius: 999px 999px 0 0;
+      background: rgba(255, 255, 255, 0.78);
+      transform: translateX(-50%);
+    }
+
+    .stat-name {
+      font-size: 19px;
+      font-weight: 900;
+      line-height: 1.2;
+      overflow-wrap: anywhere;
+    }
+
+    .stat-count {
+      margin-top: 8px;
+      font-size: 34px;
+      font-weight: 900;
+      line-height: 1;
+      text-shadow: 0 3px 0 rgba(23, 32, 42, 0.18);
+    }
+
+    .stat-empty {
+      min-height: 160px;
+      display: grid;
+      place-items: center;
+      border: 3px dashed rgba(255, 255, 255, 0.72);
+      border-radius: 8px;
+      color: #17202a;
+      font-size: 24px;
+      font-weight: 900;
+      background: rgba(255, 255, 255, 0.38);
+    }
+
+    .celebrate {
+      animation: celebrate 680ms ease both;
+    }
+
+    @keyframes celebrate {
+      0% { transform: scale(0.96); }
+      45% { transform: scale(1.06); }
+      100% { transform: scale(1); }
+    }
+
+    @media (max-width: 860px) {
+      .app {
+        width: min(100vw - 24px, 760px);
+        padding: 16px 0;
+      }
+
+      main {
+        grid-template-columns: 1fr;
+      }
+
+      main {
+        display: block;
+      }
+
+      .stage {
+        min-height: auto;
+      }
+
+      .roulette-board {
+        min-height: 390px;
+      }
+
+      .photo-display {
+        width: min(28vh, 210px);
+      }
+
+      .controls {
+        grid-template-columns: 1fr;
+      }
+
+      .modal-actions {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .optional-row {
+        margin-left: 10px;
+      }
+
+      .compact-option {
+        grid-template-columns: 70px minmax(0, 1fr) auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="floating-tools">
+    <button class="float-btn stats-btn" id="statsBtn" type="button" aria-label="指名された回数" title="指名された回数">集計</button>
+    <button class="float-btn" id="manageBtn" type="button" aria-label="候補管理" title="候補管理">設定</button>
+  </div>
+
+  <div class="app">
+    <main>
+      <section class="stage" aria-label="ルーレット">
+        <div class="roulette-board">
+          <div class="display" id="display">
+            <div class="result-stack">
+              <img class="photo-display" id="photoDisplay" alt="">
+              <div class="name-display" id="nameDisplay">名前を追加</div>
+            </div>
+          </div>
+        </div>
+        <div class="controls">
+          <button class="toggle-btn start-btn" id="toggleBtn" type="button">スタート</button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal" id="candidateModal" aria-hidden="true">
+    <section class="panel modal-panel" role="dialog" aria-modal="true" aria-labelledby="candidateModalTitle">
+      <div class="modal-head">
+        <h2 id="candidateModalTitle">候補管理</h2>
+        <button class="close-btn" id="closeModalBtn" type="button" aria-label="閉じる">×</button>
+      </div>
+
+      <div class="modal-body">
+        <section class="form-panel" aria-label="候補追加">
+          <label for="nameInput">候補追加</label>
+          <form class="form-row" id="nameForm">
+            <input id="nameInput" type="text" autocomplete="off" placeholder="名前を入力…">
+            <button class="add-btn" type="submit">追加</button>
+          </form>
+          <div class="optional-row">
+            <div class="compact-option">
+              <span class="option-label">画像</span>
+              <input class="photo-input" id="imageInput" type="file" accept="image/*">
+              <img class="photo-preview" id="imagePreview" alt="">
+            </div>
+            <div class="compact-option">
+              <span class="option-label">色</span>
+              <input class="color-input" id="colorInput" type="color" value="#43aa8b" aria-label="候補色">
+              <button class="auto-color-btn" id="autoColorBtn" type="button">ランダム色</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="mode-panel" aria-label="抽選設定">
+          <div class="mode-row">
+            <label>抽選モード</label>
+            <div class="mode-options">
+              <label class="mode-option">
+                <input type="radio" name="selectionMode" value="random">
+                <span>完全ランダム</span>
+              </label>
+              <label class="mode-option">
+                <input type="radio" name="selectionMode" value="fair">
+                <span>平等に当てる</span>
+              </label>
+            </div>
+          </div>
+        </section>
+
+        <section class="list-panel" aria-label="候補一覧">
+          <p class="panel-title">候補一覧 <span id="countLabel">0人</span></p>
+          <div class="candidate-list" id="candidateList"></div>
+        </section>
+      </div>
+
+      <div class="modal-actions">
+        <button id="exportBtn" type="button">書き出し</button>
+        <button id="importBtn" type="button">読み込み</button>
+        <button id="clearResultBtn" type="button">結果を消す</button>
+        <button class="danger-btn" id="clearAllBtn" type="button">全候補を消す</button>
+      </div>
+      <input id="importInput" type="file" accept="application/json,.json" hidden>
+      <div class="last-result" id="lastResult" hidden>まだありません</div>
+    </section>
+  </div>
+
+  <div class="modal" id="statsModal" aria-hidden="true">
+    <section class="panel stats-panel" role="dialog" aria-modal="true" aria-labelledby="statsModalTitle">
+      <div class="stats-head">
+        <h2 id="statsModalTitle">指名された回数</h2>
+        <button class="close-btn" id="closeStatsBtn" type="button" aria-label="閉じる">×</button>
+      </div>
+      <div class="stats-grid" id="statsGrid"></div>
+      <div class="stats-actions">
+        <button class="reset-stats-btn" id="resetStatsBtn" type="button">リセット</button>
+      </div>
+    </section>
+  </div>
+
+  <audio id="startAudio" src="se/決定ボタンを押す39.mp3" preload="auto"></audio>
+  <audio id="spinAudio" src="se/電子ルーレット回転中_loop.mp3" preload="auto" loop></audio>
+  <audio id="slowAudio" src="se/電子ルーレットが徐々に止まる.mp3" preload="auto"></audio>
+  <audio id="stopAudio" src="se/電子ルーレット停止ボタンを押す.mp3" preload="auto"></audio>
+
+  <script>
+    const candidatesKey = "mathRouletteCandidates";
+    const resultKey = "mathRouletteLastResult";
+    const modeKey = "mathRouletteSelectionMode";
+    const colors = [
+      ["#f94144", "#ffffff"],
+      ["#277da1", "#ffffff"],
+      ["#f9c74f", "#1b2733"],
+      ["#43aa8b", "#ffffff"],
+      ["#8e44ad", "#ffffff"],
+      ["#f3722c", "#ffffff"],
+      ["#577590", "#ffffff"],
+      ["#ff7aa2", "#221824"],
+      ["#90be6d", "#14251c"],
+      ["#2ec4b6", "#102423"]
+    ];
+
+    const state = {
+      candidates: loadCandidates(),
+      lastResult: loadLastResult(),
+      mode: "idle",
+      index: 0,
+      timer: 0,
+      delay: 58,
+      slowSteps: 0,
+      pendingImage: "",
+      pendingColor: "",
+      selectionMode: loadSelectionMode()
+    };
+
+    const display = document.getElementById("display");
+    const photoDisplay = document.getElementById("photoDisplay");
+    const nameDisplay = document.getElementById("nameDisplay");
+    const toggleBtn = document.getElementById("toggleBtn");
+    const statsBtn = document.getElementById("statsBtn");
+    const statsModal = document.getElementById("statsModal");
+    const closeStatsBtn = document.getElementById("closeStatsBtn");
+    const resetStatsBtn = document.getElementById("resetStatsBtn");
+    const statsGrid = document.getElementById("statsGrid");
+    const manageBtn = document.getElementById("manageBtn");
+    const candidateModal = document.getElementById("candidateModal");
+    const closeModalBtn = document.getElementById("closeModalBtn");
+    const nameForm = document.getElementById("nameForm");
+    const nameInput = document.getElementById("nameInput");
+    const imageInput = document.getElementById("imageInput");
+    const imagePreview = document.getElementById("imagePreview");
+    const colorInput = document.getElementById("colorInput");
+    const autoColorBtn = document.getElementById("autoColorBtn");
+    const modeInputs = Array.from(document.querySelectorAll('input[name="selectionMode"]'));
+    const candidateList = document.getElementById("candidateList");
+    const countLabel = document.getElementById("countLabel");
+    const lastResult = document.getElementById("lastResult");
+    const exportBtn = document.getElementById("exportBtn");
+    const importBtn = document.getElementById("importBtn");
+    const importInput = document.getElementById("importInput");
+    const clearResultBtn = document.getElementById("clearResultBtn");
+    const clearAllBtn = document.getElementById("clearAllBtn");
+    const startAudio = document.getElementById("startAudio");
+    const spinAudio = document.getElementById("spinAudio");
+    const slowAudio = document.getElementById("slowAudio");
+    const stopAudio = document.getElementById("stopAudio");
+
+    function isHexColor(value) {
+      return /^#[0-9a-f]{6}$/i.test(value);
+    }
+
+    function textColorForBackground(color) {
+      if (!isHexColor(color)) return "#ffffff";
+      const red = parseInt(color.slice(1, 3), 16);
+      const green = parseInt(color.slice(3, 5), 16);
+      const blue = parseInt(color.slice(5, 7), 16);
+      const brightness = (red * 299 + green * 587 + blue * 114) / 1000;
+      return brightness > 156 ? "#17202a" : "#ffffff";
+    }
+
+    function hslToHex(hue, saturation, lightness) {
+      const chroma = (1 - Math.abs(2 * lightness - 1)) * saturation;
+      const huePrime = hue / 60;
+      const x = chroma * (1 - Math.abs((huePrime % 2) - 1));
+      const [r1, g1, b1] =
+        huePrime < 1 ? [chroma, x, 0] :
+        huePrime < 2 ? [x, chroma, 0] :
+        huePrime < 3 ? [0, chroma, x] :
+        huePrime < 4 ? [0, x, chroma] :
+        huePrime < 5 ? [x, 0, chroma] :
+        [chroma, 0, x];
+      const m = lightness - chroma / 2;
+      const toHex = (value) => Math.round((value + m) * 255).toString(16).padStart(2, "0");
+      return `#${toHex(r1)}${toHex(g1)}${toHex(b1)}`;
+    }
+
+    function autoColorForIndex(index) {
+      if (index < colors.length) return colors[index][0];
+
+      const hue = (index * 137.508) % 360;
+      return hslToHex(hue, 0.72, 0.48);
+    }
+
+    function randomColor() {
+      const hue = Math.floor(Math.random() * 360);
+      const saturation = 0.62 + Math.random() * 0.2;
+      const lightness = 0.42 + Math.random() * 0.16;
+      return hslToHex(hue, saturation, lightness);
+    }
+
+    function normalizeCandidate(candidate, index = 0) {
+      if (typeof candidate === "string") {
+        const name = candidate.trim();
+        const color = autoColorForIndex(index);
+        return { name, image: "", color, textColor: textColorForBackground(color), hitCount: 0, absent: false };
+      }
+
+      if (candidate && typeof candidate === "object") {
+        const name = String(candidate.name || "").trim();
+        const color = isHexColor(candidate.color) ? candidate.color : autoColorForIndex(index);
+        return {
+          name,
+          image: typeof candidate.image === "string" ? candidate.image : "",
+          color,
+          textColor: isHexColor(candidate.textColor) ? candidate.textColor : textColorForBackground(color),
+          hitCount: Number.isFinite(candidate.hitCount) && candidate.hitCount >= 0
+            ? Math.floor(candidate.hitCount)
+            : 0,
+          absent: candidate.absent === true
+        };
+      }
+
+      const color = colors[0][0];
+      return { name: "", image: "", color, textColor: textColorForBackground(color), hitCount: 0, absent: false };
+    }
+
+    function exportCandidate(candidate) {
+      const normalized = normalizeCandidate(candidate);
+      return {
+        name: normalized.name,
+        image: normalized.image,
+        color: normalized.color
+      };
+    }
+
+    function loadSelectionMode() {
+      return localStorage.getItem(modeKey) === "fair" ? "fair" : "random";
+    }
+
+    function loadCandidates() {
+      try {
+        const parsed = JSON.parse(localStorage.getItem(candidatesKey) || "[]");
+        return Array.isArray(parsed)
+          ? parsed.map((candidate, index) => normalizeCandidate(candidate, index)).filter((candidate) => candidate.name)
+          : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function loadLastResult() {
+      const stored = localStorage.getItem(resultKey);
+      if (!stored) return null;
+
+      try {
+        const parsed = JSON.parse(stored);
+        const candidate = normalizeCandidate(parsed);
+        return candidate.name ? candidate : null;
+      } catch {
+        const candidate = normalizeCandidate(stored);
+        return candidate.name ? candidate : null;
+      }
+    }
+
+    function saveCandidates() {
+      localStorage.setItem(candidatesKey, JSON.stringify(state.candidates));
+    }
+
+    function saveSelectionMode() {
+      localStorage.setItem(modeKey, state.selectionMode);
+    }
+
+    function saveLastResult() {
+      if (state.lastResult) {
+        localStorage.setItem(resultKey, JSON.stringify(state.lastResult));
+      } else {
+        localStorage.removeItem(resultKey);
+      }
+    }
+
+    function setStatus(text) {
+      display.setAttribute("aria-label", text);
+    }
+
+    function playOneShot(audio) {
+      const sound = audio.cloneNode(true);
+      sound.volume = 0.9;
+      sound.play().catch(() => {});
+      sound.addEventListener("ended", () => sound.remove(), { once: true });
+    }
+
+    function startLoop(audio, volume = 0.75) {
+      audio.pause();
+      audio.currentTime = 0;
+      audio.volume = volume;
+      audio.play().catch(() => {});
+    }
+
+    function stopLoop(audio) {
+      audio.pause();
+      audio.currentTime = 0;
+    }
+
+    function availableEntries() {
+      return state.candidates
+        .map((candidate, index) => ({ candidate, index }))
+        .filter(({ candidate }) => !candidate.absent);
+    }
+
+    function visibleLastResult() {
+      if (!state.lastResult) return null;
+      return state.candidates.some((candidate) => candidate.name === state.lastResult.name && !candidate.absent)
+        ? state.lastResult
+        : null;
+    }
+
+    function colorForCandidate(candidate) {
+      const normalized = normalizeCandidate(candidate);
+      if (!normalized.name) return ["#ffffff", "#17202a"];
+      return [normalized.color, normalized.textColor];
+    }
+
+    function showCandidate(candidate, colorIndex = state.index) {
+      const normalized = normalizeCandidate(candidate);
+      const color = colorForCandidate(normalized);
+      nameDisplay.textContent = normalized.name || "指名ルーレット";
+      photoDisplay.src = normalized.image || "";
+      photoDisplay.alt = normalized.image ? `${normalized.name}の写真` : "";
+      photoDisplay.classList.toggle("visible", Boolean(normalized.image));
+      display.style.backgroundColor = color[0];
+      display.style.color = color[1];
+      renderCandidates();
+    }
+
+    function nextCandidate() {
+      const entries = availableEntries();
+      if (!entries.length) {
+        showCandidate(null);
+        return;
+      }
+
+      state.index = entries[Math.floor(Math.random() * entries.length)].index;
+      showCandidate(state.candidates[state.index], Math.floor(Math.random() * colors.length));
+    }
+
+    function selectWinnerIndex() {
+      const entries = availableEntries();
+      if (!entries.length) return -1;
+      if (state.selectionMode === "random") {
+        return entries[Math.floor(Math.random() * entries.length)].index;
+      }
+
+      const minCount = Math.min(...entries.map(({ candidate }) => candidate.hitCount || 0));
+      const eligible = entries
+        .filter(({ candidate }) => (candidate.hitCount || 0) === minCount);
+      return eligible[Math.floor(Math.random() * eligible.length)].index;
+    }
+
+    function spinTick() {
+      nextCandidate();
+      state.timer = window.setTimeout(spinTick, state.delay);
+    }
+
+    function slowTick() {
+      nextCandidate();
+      state.delay = Math.round(state.delay * 1.17 + 9);
+      state.slowSteps += 1;
+
+      if (state.slowSteps >= 22 || state.delay > 720) {
+        finishRoulette();
+        return;
+      }
+
+      state.timer = window.setTimeout(slowTick, state.delay);
+    }
+
+    function startRoulette() {
+      if (!availableEntries().length || state.mode === "spinning" || state.mode === "slowing") return;
+
+      state.mode = "spinning";
+      state.delay = 52;
+      state.slowSteps = 0;
+      window.clearTimeout(state.timer);
+      setStatus("回転中");
+      updateToggleButton();
+      display.classList.add("spinning");
+      display.classList.remove("celebrate");
+      playOneShot(startAudio);
+      startLoop(spinAudio, 0.68);
+      stopLoop(slowAudio);
+      spinTick();
+    }
+
+    function stopRoulette() {
+      if (state.mode !== "spinning") return;
+
+      state.mode = "slowing";
+      window.clearTimeout(state.timer);
+      setStatus("減速中");
+      updateToggleButton();
+      stopLoop(spinAudio);
+      startLoop(slowAudio, 0.78);
+      slowTick();
+    }
+
+    function finishRoulette() {
+      state.mode = "idle";
+      window.clearTimeout(state.timer);
+      stopLoop(spinAudio);
+      stopLoop(slowAudio);
+      display.classList.remove("spinning");
+      display.classList.add("celebrate");
+      setStatus("結果");
+
+      const winnerIndex = selectWinnerIndex();
+      if (winnerIndex >= 0) state.index = winnerIndex;
+      const winner = state.candidates[state.index] || "";
+      if (winner) {
+        winner.hitCount = (winner.hitCount || 0) + 1;
+      }
+      state.lastResult = winner ? { ...winner } : null;
+      saveCandidates();
+      saveLastResult();
+      updateLastResult();
+      showCandidate(state.lastResult, state.index + 2);
+      updateToggleButton();
+      playOneShot(stopAudio);
+    }
+
+    function addCandidate(name, image = "", color = "") {
+      const trimmed = name.trim();
+      if (!trimmed) return;
+      const assignedColor = isHexColor(color) ? color : autoColorForIndex(state.candidates.length);
+      state.candidates.push({
+        name: trimmed,
+        image,
+        color: assignedColor,
+        textColor: textColorForBackground(assignedColor),
+        hitCount: 0,
+        absent: false
+      });
+      saveCandidates();
+      nameInput.value = "";
+      clearPendingImage();
+      clearPendingColor();
+
+      if (state.candidates.length === 1 && state.mode === "idle" && !state.lastResult) {
+        state.index = 0;
+        showCandidate(null);
+      }
+
+      render();
+    }
+
+    function updateCandidateColor(index, color) {
+      if (state.mode !== "idle" || !isHexColor(color)) return;
+      const candidate = state.candidates[index];
+      if (!candidate) return;
+
+      candidate.color = color;
+      candidate.textColor = textColorForBackground(color);
+
+      if (state.lastResult?.name === candidate.name) {
+        state.lastResult = { ...candidate };
+        saveLastResult();
+      }
+
+      saveCandidates();
+      render();
+    }
+
+    function removeCandidate(index) {
+      if (state.mode !== "idle") return;
+      state.candidates.splice(index, 1);
+      state.index = Math.min(state.index, Math.max(0, state.candidates.length - 1));
+      saveCandidates();
+      render();
+    }
+
+    function toggleCandidateAbsence(index) {
+      if (state.mode !== "idle") return;
+      const candidate = state.candidates[index];
+      if (!candidate) return;
+
+      candidate.absent = !candidate.absent;
+      saveCandidates();
+      render();
+    }
+
+    function renderCandidates() {
+      candidateList.innerHTML = "";
+      state.candidates.forEach((candidate, index) => {
+        const item = document.createElement("div");
+        item.className = "candidate" +
+          (index === state.index && !candidate.absent ? " active" : "") +
+          (candidate.absent ? " absent" : "");
+
+        const photo = candidate.image ? document.createElement("img") : document.createElement("span");
+        photo.className = "candidate-photo" + (candidate.image ? "" : " empty");
+        if (candidate.image) {
+          photo.src = candidate.image;
+          photo.alt = "";
+        } else {
+          photo.setAttribute("aria-hidden", "true");
+        }
+
+        const label = document.createElement("span");
+        label.className = "candidate-name";
+        label.textContent = candidate.name;
+
+        const absent = document.createElement("button");
+        absent.className = "absent-btn" + (candidate.absent ? " is-absent" : "");
+        absent.type = "button";
+        absent.textContent = candidate.absent ? "欠席" : "出席";
+        absent.title = candidate.absent
+          ? `${candidate.name}をルーレット対象に戻す`
+          : `${candidate.name}を一時的に除外`;
+        absent.disabled = state.mode !== "idle";
+        absent.addEventListener("click", () => toggleCandidateAbsence(index));
+
+        const color = document.createElement("input");
+        color.className = "candidate-color";
+        color.type = "color";
+        color.value = candidate.color;
+        color.title = `${candidate.name}の色を変更`;
+        color.disabled = state.mode !== "idle";
+        color.addEventListener("change", () => updateCandidateColor(index, color.value));
+
+        const remove = document.createElement("button");
+        remove.className = "remove-btn";
+        remove.type = "button";
+        remove.textContent = "×";
+        remove.title = `${candidate.name}を候補から削除`;
+        remove.disabled = state.mode !== "idle";
+        remove.addEventListener("click", () => removeCandidate(index));
+
+        item.append(photo, label, absent, color, remove);
+        candidateList.append(item);
+      });
+
+      const presentCount = availableEntries().length;
+      countLabel.textContent = `${presentCount}/${state.candidates.length}人`;
+    }
+
+    function updateLastResult() {
+      lastResult.textContent = visibleLastResult()?.name || "まだありません";
+    }
+
+    function renderStats() {
+      statsGrid.innerHTML = "";
+      const entries = availableEntries();
+
+      if (!entries.length) {
+        const empty = document.createElement("div");
+        empty.className = "stat-empty";
+        empty.textContent = state.candidates.length ? "出席中の候補がいません" : "候補がまだありません";
+        statsGrid.append(empty);
+        return;
+      }
+
+      const sorted = entries
+        .sort((a, b) => (b.candidate.hitCount || 0) - (a.candidate.hitCount || 0) || a.index - b.index);
+
+      sorted.forEach(({ candidate }) => {
+        const card = document.createElement("div");
+        card.className = "stat-card";
+        card.style.background = candidate.color;
+        card.style.color = candidate.textColor;
+
+        const photo = candidate.image ? document.createElement("img") : document.createElement("div");
+        if (candidate.image) {
+          photo.className = "stat-photo";
+          photo.src = candidate.image;
+          photo.alt = "";
+        } else {
+          photo.className = "stat-photo-empty";
+          photo.setAttribute("aria-hidden", "true");
+        }
+
+        const body = document.createElement("div");
+        const name = document.createElement("div");
+        name.className = "stat-name";
+        name.textContent = candidate.name;
+
+        const count = document.createElement("div");
+        count.className = "stat-count";
+        count.textContent = `${candidate.hitCount || 0}回`;
+
+        body.append(name, count);
+        card.append(photo, body);
+        statsGrid.append(card);
+      });
+    }
+
+    function resetHitCounts() {
+      if (!state.candidates.length) return;
+      if (!window.confirm("指名された回数をすべて0に戻しますか？")) return;
+
+      state.candidates.forEach((candidate) => {
+        candidate.hitCount = 0;
+      });
+      if (state.lastResult) {
+        state.lastResult.hitCount = 0;
+        saveLastResult();
+      }
+      saveCandidates();
+      renderStats();
+    }
+
+    function updateToggleButton() {
+      toggleBtn.classList.toggle("start-btn", state.mode !== "spinning");
+      toggleBtn.classList.toggle("stop-btn", state.mode === "spinning");
+
+      if (state.mode === "spinning") {
+        toggleBtn.textContent = "ストップ";
+        toggleBtn.disabled = false;
+      } else if (state.mode === "slowing") {
+        toggleBtn.textContent = "ストップ";
+        toggleBtn.disabled = true;
+      } else {
+        toggleBtn.textContent = "スタート";
+        toggleBtn.disabled = availableEntries().length === 0;
+      }
+    }
+
+    function render() {
+      renderCandidates();
+      updateLastResult();
+      updateToggleButton();
+
+      if (state.mode === "idle") {
+        const result = visibleLastResult();
+        if (result) {
+          showCandidate(result, 4);
+          setStatus("再スタートできます");
+        } else {
+          showCandidate(null);
+          setStatus(availableEntries().length ? "待機中" : "候補を追加");
+        }
+      }
+    }
+
+    function clearPendingImage() {
+      state.pendingImage = "";
+      imageInput.value = "";
+      imagePreview.src = "";
+      imagePreview.classList.remove("visible");
+    }
+
+    function clearPendingColor() {
+      state.pendingColor = "";
+      colorInput.value = autoColorForIndex(state.candidates.length);
+    }
+
+    function resizeImageFile(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.addEventListener("error", () => reject(new Error("画像を読み込めませんでした")));
+        reader.addEventListener("load", () => {
+          const image = new Image();
+          image.addEventListener("error", () => reject(new Error("画像を表示できませんでした")));
+          image.addEventListener("load", () => {
+            const maxSize = 640;
+            const scale = Math.min(1, maxSize / Math.max(image.naturalWidth, image.naturalHeight));
+            const width = Math.max(1, Math.round(image.naturalWidth * scale));
+            const height = Math.max(1, Math.round(image.naturalHeight * scale));
+            const canvas = document.createElement("canvas");
+            canvas.width = width;
+            canvas.height = height;
+            const context = canvas.getContext("2d");
+            context.drawImage(image, 0, 0, width, height);
+            resolve(canvas.toDataURL("image/jpeg", 0.82));
+          });
+          image.src = reader.result;
+        });
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function exportSettings() {
+      const payload = {
+        app: "math-roulette",
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        candidates: state.candidates.map((candidate) => exportCandidate(candidate))
+      };
+
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      const date = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+      link.href = url;
+      link.download = `指名ルーレット設定_${date}.json`;
+      document.body.append(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    function applyImportedSettings(payload) {
+      const sourceCandidates = Array.isArray(payload)
+        ? payload
+        : Array.isArray(payload?.candidates)
+          ? payload.candidates
+          : null;
+
+      if (!sourceCandidates) {
+        throw new Error("候補一覧が見つかりません");
+      }
+
+      const importedCandidates = sourceCandidates
+        .map((candidate, index) => normalizeCandidate(candidate, index))
+        .filter((candidate) => candidate.name);
+
+      state.candidates = importedCandidates;
+      state.lastResult = null;
+      state.index = 0;
+      display.classList.remove("celebrate");
+      saveCandidates();
+      saveLastResult();
+      clearPendingImage();
+      clearPendingColor();
+      render();
+    }
+
+    function importSettingsFile(file) {
+      const reader = new FileReader();
+      reader.addEventListener("load", () => {
+        try {
+          applyImportedSettings(JSON.parse(String(reader.result || "{}")));
+        } catch (error) {
+          window.alert(`設定ファイルを読み込めませんでした。\n${error.message}`);
+        } finally {
+          importInput.value = "";
+        }
+      });
+      reader.addEventListener("error", () => {
+        window.alert("設定ファイルを読み込めませんでした。");
+        importInput.value = "";
+      });
+      reader.readAsText(file);
+    }
+
+    function openCandidateModal() {
+      candidateModal.classList.add("open");
+      candidateModal.setAttribute("aria-hidden", "false");
+      nameInput.focus();
+    }
+
+    function closeCandidateModal() {
+      candidateModal.classList.remove("open");
+      candidateModal.setAttribute("aria-hidden", "true");
+      manageBtn.focus();
+    }
+
+    function openStatsModal() {
+      renderStats();
+      statsModal.classList.add("open");
+      statsModal.setAttribute("aria-hidden", "false");
+      closeStatsBtn.focus();
+    }
+
+    function closeStatsModal() {
+      statsModal.classList.remove("open");
+      statsModal.setAttribute("aria-hidden", "true");
+      statsBtn.focus();
+    }
+
+    nameForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      addCandidate(nameInput.value, state.pendingImage, state.pendingColor);
+      nameInput.focus();
+    });
+
+    nameInput.addEventListener("input", () => {
+      if (!state.pendingColor) {
+        colorInput.value = autoColorForIndex(state.candidates.length);
+      }
+    });
+
+    imageInput.addEventListener("change", async () => {
+      const file = imageInput.files?.[0];
+      if (!file) {
+        clearPendingImage();
+        return;
+      }
+
+      try {
+        state.pendingImage = await resizeImageFile(file);
+        imagePreview.src = state.pendingImage;
+        imagePreview.classList.add("visible");
+      } catch {
+        clearPendingImage();
+      }
+    });
+
+    colorInput.addEventListener("input", () => {
+      state.pendingColor = colorInput.value;
+    });
+
+    autoColorBtn.addEventListener("click", () => {
+      state.pendingColor = randomColor();
+      colorInput.value = state.pendingColor;
+      nameInput.focus();
+    });
+
+    toggleBtn.addEventListener("click", () => {
+      if (state.mode === "spinning") {
+        stopRoulette();
+      } else {
+        startRoulette();
+      }
+    });
+
+    manageBtn.addEventListener("click", openCandidateModal);
+    closeModalBtn.addEventListener("click", closeCandidateModal);
+    candidateModal.addEventListener("click", (event) => {
+      if (event.target === candidateModal) closeCandidateModal();
+    });
+
+    statsBtn.addEventListener("click", openStatsModal);
+    closeStatsBtn.addEventListener("click", closeStatsModal);
+    resetStatsBtn.addEventListener("click", resetHitCounts);
+    statsModal.addEventListener("click", (event) => {
+      if (event.target === statsModal) closeStatsModal();
+    });
+
+    exportBtn.addEventListener("click", exportSettings);
+
+    importBtn.addEventListener("click", () => {
+      importInput.click();
+    });
+
+    importInput.addEventListener("change", () => {
+      const file = importInput.files?.[0];
+      if (file) importSettingsFile(file);
+    });
+
+    modeInputs.forEach((input) => {
+      input.addEventListener("change", () => {
+        if (!input.checked) return;
+        state.selectionMode = input.value === "fair" ? "fair" : "random";
+        saveSelectionMode();
+        updateModeInputs();
+      });
+    });
+
+    clearResultBtn.addEventListener("click", () => {
+      if (state.mode !== "idle") return;
+      state.lastResult = null;
+      saveLastResult();
+      display.classList.remove("celebrate");
+      render();
+    });
+
+    clearAllBtn.addEventListener("click", () => {
+      if (state.mode !== "idle") return;
+      state.candidates = [];
+      state.lastResult = null;
+      state.index = 0;
+      saveCandidates();
+      saveLastResult();
+      display.classList.remove("celebrate");
+      clearPendingColor();
+      render();
+    });
+
+    document.addEventListener("keydown", (event) => {
+      const target = event.target;
+      const typing = target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement;
+
+      if (event.code === "Space" && !typing) {
+        event.preventDefault();
+        startRoulette();
+      }
+
+      if (event.code === "Enter" && !typing) {
+        event.preventDefault();
+        stopRoulette();
+      }
+
+      if (event.code === "Escape" && candidateModal.classList.contains("open")) {
+        event.preventDefault();
+        closeCandidateModal();
+      }
+
+      if (event.code === "Escape" && statsModal.classList.contains("open")) {
+        event.preventDefault();
+        closeStatsModal();
+      }
+    });
+
+    function updateModeInputs() {
+      modeInputs.forEach((input) => {
+        input.checked = input.value === state.selectionMode;
+        input.closest(".mode-option")?.classList.toggle("selected", input.checked);
+      });
+    }
+
+    updateModeInputs();
+    clearPendingColor();
+    render();
+  </script>
+</body>
+</html>
