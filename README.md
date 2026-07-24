@@ -6,24 +6,17 @@
 
 `index.html` をブラウザで開きます。
 
-- `スタート` ボタンまたはスペースキーで開始
-- `ストップ` ボタンまたはEnterキーで停止
-- `設定` から候補の追加、画像・色の設定、抽選モードの変更、JSONの書き出し/読み込み
-- `集計` から指名された回数の確認とリセット
+1. 画面右下の `設定` を開き、候補の名前を追加します。画像や色、抽選モードもここで設定できます。
 
-## スクリーンショット
+   <img src="docs/screenshots/settings.jpg" alt="候補管理画面" width="520">
 
-### ルーレット画面
+2. `スタート` ボタンまたはスペースキーでルーレットを開始し、`ストップ` ボタンまたはEnterキーで停止します。
 
-![ルーレット画面](docs/screenshots/roulette.jpg)
+   <img src="docs/screenshots/roulette.jpg" alt="ルーレット画面" width="520">
 
-### 候補管理
+3. 画面右下の `集計` から、指名された回数を確認できます。
 
-![候補管理](docs/screenshots/settings.jpg)
-
-### 集計
-
-![集計](docs/screenshots/stats.jpg)
+   <img src="docs/screenshots/stats.jpg" alt="集計画面" width="520">
 
 ## 主な機能
 
