@@ -823,19 +823,20 @@
 
     @media (orientation: landscape) and (min-width: 861px) and (max-height: 900px) {
       .app {
+        width: min(920px, calc(100vw - 64px));
         min-height: 100svh;
         padding: 8px 0;
       }
 
       .stage {
-        min-height: calc(100vh - 200px);
-        min-height: calc(100svh - 200px);
+        min-height: calc(100vh - 160px);
+        min-height: calc(100svh - 160px);
         gap: 8px;
       }
 
       .roulette-board {
-        min-height: min(48vh, 420px);
-        min-height: min(48svh, 420px);
+        min-height: min(52vh, 450px);
+        min-height: min(52svh, 450px);
       }
 
       .display {
@@ -849,6 +850,45 @@
 
       .toggle-btn {
         min-height: 54px;
+      }
+
+      .modal {
+        padding: 12px 18px;
+      }
+
+      .modal-panel {
+        width: min(680px, 100%);
+        max-height: calc(100vh - 24px);
+        max-height: calc(100svh - 24px);
+        gap: 10px;
+        padding: 14px;
+      }
+
+      .form-panel,
+      .list-panel {
+        padding: 12px;
+      }
+
+      .mode-panel {
+        padding: 0 12px;
+      }
+
+      .modal-body {
+        gap: 10px;
+      }
+
+      .candidate-list {
+        gap: 6px;
+        padding-bottom: 8px;
+      }
+
+      .candidate {
+        min-height: 48px;
+        padding: 6px 8px 6px 10px;
+      }
+
+      .modal-actions button {
+        min-height: 38px;
       }
     }
   </style>
