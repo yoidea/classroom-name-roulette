@@ -909,9 +909,6 @@
     const candidatesKey = "classroomRandomPickerCandidates";
     const resultKey = "classroomRandomPickerLastResult";
     const modeKey = "classroomRandomPickerSelectionMode";
-    const legacyCandidatesKey = "mathRouletteCandidates";
-    const legacyResultKey = "mathRouletteLastResult";
-    const legacyModeKey = "mathRouletteSelectionMode";
     const colors = [
       ["#f94144", "#ffffff"],
       ["#277da1", "#ffffff"],
@@ -1049,12 +1046,12 @@
     }
 
     function loadSelectionMode() {
-      return (localStorage.getItem(modeKey) || localStorage.getItem(legacyModeKey)) === "fair" ? "fair" : "random";
+      return localStorage.getItem(modeKey) === "fair" ? "fair" : "random";
     }
 
     function loadCandidates() {
       try {
-        const parsed = JSON.parse(localStorage.getItem(candidatesKey) || localStorage.getItem(legacyCandidatesKey) || "[]");
+        const parsed = JSON.parse(localStorage.getItem(candidatesKey) || "[]");
         return Array.isArray(parsed)
           ? parsed.map((candidate, index) => normalizeCandidate(candidate, index)).filter((candidate) => candidate.name)
           : [];
@@ -1064,7 +1061,7 @@
     }
 
     function loadLastResult() {
-      const stored = localStorage.getItem(resultKey) || localStorage.getItem(legacyResultKey);
+      const stored = localStorage.getItem(resultKey);
       if (!stored) return null;
 
       try {
