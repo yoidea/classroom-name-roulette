@@ -212,6 +212,26 @@
       gap: 10px;
     }
 
+    .credit-link {
+      position: fixed;
+      left: 16px;
+      bottom: 12px;
+      z-index: 9;
+      color: rgba(23, 32, 42, 0.5);
+      font-size: 12px;
+      font-weight: 800;
+      text-decoration: none;
+      text-shadow: 0 1px 0 rgba(255, 255, 255, 0.45);
+      opacity: 0.72;
+      transition: opacity 120ms ease, color 120ms ease;
+    }
+
+    .credit-link:hover,
+    .credit-link:focus-visible {
+      color: rgba(23, 32, 42, 0.88);
+      opacity: 1;
+    }
+
     .float-btn {
       min-width: 76px;
       min-height: 38px;
@@ -803,6 +823,8 @@
   </style>
 </head>
 <body>
+  <a class="credit-link" href="https://www.youtube.com/@lambdatech" target="_blank" rel="noopener noreferrer">Created by ラムダ技術部</a>
+
   <div class="floating-tools">
     <button class="float-btn stats-btn" id="statsBtn" type="button" aria-label="指名された回数" title="指名された回数">集計</button>
     <button class="float-btn" id="manageBtn" type="button" aria-label="候補管理" title="候補管理">設定</button>
