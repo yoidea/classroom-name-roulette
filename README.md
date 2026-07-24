@@ -54,3 +54,7 @@ JSON書き出しには候補マスタだけを含めます。
 - `spin-loop.mp3`: 回転中
 - `slow-down.mp3`: 減速中
 - `result.mp3`: 結果表示時
+
+効果音素材: [効果音ラボ](https://soundeffect-lab.info/)
+
+効果音ラボの利用規約では、報告・リンク・クレジット表記は任意です。
